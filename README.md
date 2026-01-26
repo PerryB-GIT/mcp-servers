@@ -1,6 +1,6 @@
 # MCP Servers Collection
 
-Custom Model Context Protocol (MCP) servers for Claude Code, built by Perry Bailes.
+Custom Model Context Protocol (MCP) servers for Claude Code.
 
 ## Overview
 
@@ -114,4 +114,4 @@ npm run auth
 
 ## License
 
-Personal use. Built for Perry Bailes' Claude Code workflow.
+MIT License

@@ -61,7 +61,7 @@ Add to your Claude Code MCP settings (`~/.claude/mcp_servers.json` or via Claude
   "mcpServers": {
     "google-business-profile": {
       "command": "node",
-      "args": ["C:/Users/Jakeb/mcp-servers/google-business-profile/dist/index.js"]
+      "args": ["~/mcp-servers/google-business-profile/dist/index.js"]
     }
   }
 }
@@ -74,7 +74,7 @@ Or for development:
   "mcpServers": {
     "google-business-profile": {
       "command": "npx",
-      "args": ["tsx", "C:/Users/Jakeb/mcp-servers/google-business-profile/src/index.ts"]
+      "args": ["tsx", "~/mcp-servers/google-business-profile/src/index.ts"]
     }
   }
 }

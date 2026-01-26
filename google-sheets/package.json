@@ -9,7 +9,7 @@
     "auth": "node auth.js"
   },
   "keywords": ["mcp", "google-sheets"],
-  "author": "Perry Bailes",
+  "author": "",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2",

@@ -9,8 +9,8 @@
     "sms": null
   },
   "aws_profiles": [
-    { "name": "default", "description": "Main AWS account" },
-    { "name": "profile-2", "description": "Secondary account" }
+    { "name": "default", "description": "Main AWS account", "account_id": "123456789012" },
+    { "name": "profile-2", "description": "Secondary account", "account_id": "234567890123" }
   ],
   "gcp_project": "your-gcp-project-id",
   "auto_throttle": {

@@ -1,0 +1,16 @@
+{
+  "name": "google-meet-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Google Meet",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "auth": "node auth.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "googleapis": "^170.1.0",
+    "open": "^11.0.0"
+  }
+}

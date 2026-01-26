@@ -1,0 +1,19 @@
+{
+  "name": "google-drive-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Google Drive",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "auth": "node auth.js"
+  },
+  "keywords": ["mcp", "google-drive"],
+  "author": "Perry Bailes",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "googleapis": "^170.1.0",
+    "open": "^11.0.0"
+  }
+}

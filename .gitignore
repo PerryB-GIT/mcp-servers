@@ -1,0 +1,85 @@
+# ==========================================
+# SECURITY: Never commit sensitive data
+# ==========================================
+
+# OAuth credentials and tokens - CRITICAL
+credentials.json
+token.json
+*.pem
+*.key
+
+# Environment files with secrets
+.env
+.env.*
+.env.local
+.env.production
+
+# Config files with personal info
+config.json
+monitor-log.json
+
+# ==========================================
+# Dependencies and build artifacts
+# ==========================================
+
+# Node
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+
+# Cache directories (may contain serialized data)
+cache/
+.cache/
+
+# ==========================================
+# Logs and temp files
+# ==========================================
+
+# Logs
+*.log
+logs/
+daily-output.log
+
+# Temp files
+tmpclaude-*
+*.tmp
+*.bak
+*.swp
+*~
+
+# ==========================================
+# OS and IDE files
+# ==========================================
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# ==========================================
+# Test and build outputs
+# ==========================================
+
+# Test results (may contain sensitive data)
+*-results.json
+test-output/
+
+# Build
+dist/
+build/
+# Embedded git repositories (external projects)
+dnd-5e-open5e/
+dnd-dm-toolkit/
+dnd-knowledge-navigator/

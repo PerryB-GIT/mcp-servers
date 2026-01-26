@@ -1,0 +1,14 @@
+{
+  "name": "stripe-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Stripe",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "stripe": "^14.0.0"
+  }
+}

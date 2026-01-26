@@ -1,0 +1,19 @@
+{
+  "name": "gmail-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Gmail",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "auth": "node auth.js"
+  },
+  "keywords": ["mcp", "gmail"],
+  "author": "Perry Bailes",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "googleapis": "^170.1.0",
+    "open": "^11.0.0"
+  }
+}

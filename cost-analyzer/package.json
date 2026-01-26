@@ -1,0 +1,22 @@
+{
+  "name": "cost-analyzer-mcp",
+  "version": "1.0.0",
+  "description": "Unified cost monitoring across AWS, GCP, and subscriptions",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "monitor": "node monitor.js",
+    "check": "node check-costs.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@aws-sdk/client-cost-explorer": "^3.0.0",
+    "@aws-sdk/client-ec2": "^3.0.0",
+    "@aws-sdk/client-budgets": "^3.0.0",
+    "@google-cloud/billing": "^4.0.0",
+    "googleapis": "^170.1.0",
+    "nodemailer": "^6.9.0",
+    "node-cron": "^3.0.0"
+  }
+}

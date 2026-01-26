@@ -1,0 +1,31 @@
+{
+  "thresholds": {
+    "warning": 25,
+    "caution": 50,
+    "critical": 100
+  },
+  "alerts": {
+    "email": "your-email@example.com",
+    "sms": null
+  },
+  "aws_profiles": [
+    { "name": "default", "description": "Main AWS account" },
+    { "name": "profile-2", "description": "Secondary account" }
+  ],
+  "gcp_project": "your-gcp-project-id",
+  "auto_throttle": {
+    "enabled": true,
+    "threshold": 100,
+    "actions": [
+      "stop_non_essential_ec2",
+      "disable_expensive_apis",
+      "alert_and_pause"
+    ]
+  },
+  "monitored_services": [
+    { "name": "AWS", "type": "aws", "profiles": ["default", "profile-2"] },
+    { "name": "Google Cloud", "type": "gcp", "project": "your-gcp-project-id" },
+    { "name": "Stripe", "type": "stripe", "note": "Check Stripe dashboard" },
+    { "name": "Vercel", "type": "manual", "note": "Check vercel.com/dashboard" }
+  ]
+}

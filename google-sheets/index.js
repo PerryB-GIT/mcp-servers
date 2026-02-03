@@ -3,7 +3,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { google } from 'googleapis';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -12,16 +12,49 @@ const __dirname = dirname(__filename);
 const CREDENTIALS_PATH = join(__dirname, 'credentials.json');
 const TOKEN_PATH = join(__dirname, 'token.json');
 
-function getSheetsClient() {
+let cachedOAuth = null;
+
+async function getAuthClient() {
   if (!existsSync(TOKEN_PATH)) {
     throw new Error('Not authenticated. Run "npm run auth" first.');
   }
   const credentials = JSON.parse(readFileSync(CREDENTIALS_PATH, 'utf8'));
   const token = JSON.parse(readFileSync(TOKEN_PATH, 'utf8'));
   const { client_id, client_secret } = credentials.installed;
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
+  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3334/oauth2callback');
   oAuth2Client.setCredentials(token);
-  return google.sheets({ version: 'v4', auth: oAuth2Client });
+
+  try {
+    const { credentials: newCreds } = await oAuth2Client.refreshAccessToken();
+    oAuth2Client.setCredentials(newCreds);
+    const tokenToSave = {
+      ...newCreds,
+      refresh_token: newCreds.refresh_token || token.refresh_token
+    };
+    writeFileSync(TOKEN_PATH, JSON.stringify(tokenToSave, null, 2));
+  } catch (err) {
+    cachedOAuth = null;
+    throw new Error('Token refresh failed. Run "npm run auth" to re-authenticate.');
+  }
+
+  oAuth2Client.on('tokens', (tokens) => {
+    if (tokens.refresh_token || tokens.access_token) {
+      const currentToken = JSON.parse(readFileSync(TOKEN_PATH, 'utf8'));
+      const updatedToken = { ...currentToken, ...tokens };
+      writeFileSync(TOKEN_PATH, JSON.stringify(updatedToken, null, 2));
+    }
+  });
+
+  cachedOAuth = oAuth2Client;
+  return oAuth2Client;
+}
+
+async function getSheetsClient() {
+  return google.sheets({ version: 'v4', auth: await getAuthClient() });
+}
+
+async function getDriveClient() {
+  return google.drive({ version: 'v3', auth: await getAuthClient() });
 }
 
 const server = new Server(
@@ -127,6 +160,91 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ['spreadsheetId', 'requests']
       }
+    },
+    {
+      name: 'sheets_list',
+      description: 'List all spreadsheets in Google Drive',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          pageSize: { type: 'number', description: 'Max results (default 20, max 100)' },
+          pageToken: { type: 'string', description: 'Token for next page of results' }
+        }
+      }
+    },
+    {
+      name: 'sheets_delete_sheet',
+      description: 'Delete a sheet from a spreadsheet',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          spreadsheetId: { type: 'string', description: 'The spreadsheet ID' },
+          sheetId: { type: 'number', description: 'The sheet ID (numeric, from metadata)' }
+        },
+        required: ['spreadsheetId', 'sheetId']
+      }
+    },
+    {
+      name: 'sheets_copy_sheet',
+      description: 'Copy a sheet to another spreadsheet',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          sourceSpreadsheetId: { type: 'string', description: 'Source spreadsheet ID' },
+          sheetId: { type: 'number', description: 'Sheet ID to copy' },
+          destinationSpreadsheetId: { type: 'string', description: 'Destination spreadsheet ID' }
+        },
+        required: ['sourceSpreadsheetId', 'sheetId', 'destinationSpreadsheetId']
+      }
+    },
+    {
+      name: 'sheets_format_cells',
+      description: 'Apply formatting to a range (bold, colors, alignment)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          spreadsheetId: { type: 'string', description: 'The spreadsheet ID' },
+          sheetId: { type: 'number', description: 'Sheet ID (numeric)' },
+          startRow: { type: 'number', description: 'Start row index (0-based)' },
+          endRow: { type: 'number', description: 'End row index (exclusive)' },
+          startColumn: { type: 'number', description: 'Start column index (0-based)' },
+          endColumn: { type: 'number', description: 'End column index (exclusive)' },
+          bold: { type: 'boolean', description: 'Make text bold' },
+          italic: { type: 'boolean', description: 'Make text italic' },
+          backgroundColor: { type: 'object', description: 'RGB color {red, green, blue} 0-1' },
+          textColor: { type: 'object', description: 'RGB color {red, green, blue} 0-1' },
+          horizontalAlignment: { type: 'string', description: 'LEFT, CENTER, or RIGHT' }
+        },
+        required: ['spreadsheetId', 'sheetId', 'startRow', 'endRow', 'startColumn', 'endColumn']
+      }
+    },
+    {
+      name: 'sheets_freeze',
+      description: 'Freeze rows or columns in a sheet',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          spreadsheetId: { type: 'string', description: 'The spreadsheet ID' },
+          sheetId: { type: 'number', description: 'Sheet ID (numeric)' },
+          frozenRowCount: { type: 'number', description: 'Number of rows to freeze' },
+          frozenColumnCount: { type: 'number', description: 'Number of columns to freeze' }
+        },
+        required: ['spreadsheetId', 'sheetId']
+      }
+    },
+    {
+      name: 'sheets_resize_columns',
+      description: 'Auto-resize columns to fit content',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          spreadsheetId: { type: 'string', description: 'The spreadsheet ID' },
+          sheetId: { type: 'number', description: 'Sheet ID (numeric)' },
+          startIndex: { type: 'number', description: 'Start column index (0-based)' },
+          endIndex: { type: 'number', description: 'End column index (exclusive)' }
+        },
+        required: ['spreadsheetId', 'sheetId', 'startIndex', 'endIndex']
+      }
     }
   ]
 }));
@@ -135,7 +253,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
 
     switch (name) {
       case 'sheets_read_range': {
@@ -295,10 +413,177 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'sheets_list': {
+        const drive = await getDriveClient();
+        const { pageSize = 20, pageToken } = args;
+        const result = await drive.files.list({
+          q: "mimeType='application/vnd.google-apps.spreadsheet'",
+          pageSize: Math.min(pageSize, 100),
+          pageToken,
+          fields: 'nextPageToken, files(id, name, createdTime, modifiedTime, webViewLink)'
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              spreadsheets: result.data.files.map(f => ({
+                id: f.id,
+                name: f.name,
+                createdTime: f.createdTime,
+                modifiedTime: f.modifiedTime,
+                url: f.webViewLink
+              })),
+              nextPageToken: result.data.nextPageToken || null
+            }, null, 2)
+          }]
+        };
+      }
+
+      case 'sheets_delete_sheet': {
+        const { spreadsheetId, sheetId } = args;
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [{ deleteSheet: { sheetId } }]
+          }
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ success: true, message: `Deleted sheet ${sheetId}` }, null, 2)
+          }]
+        };
+      }
+
+      case 'sheets_copy_sheet': {
+        const { sourceSpreadsheetId, sheetId, destinationSpreadsheetId } = args;
+        const result = await sheets.spreadsheets.sheets.copyTo({
+          spreadsheetId: sourceSpreadsheetId,
+          sheetId,
+          requestBody: { destinationSpreadsheetId }
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              newSheetId: result.data.sheetId,
+              newTitle: result.data.title
+            }, null, 2)
+          }]
+        };
+      }
+
+      case 'sheets_format_cells': {
+        const { spreadsheetId, sheetId, startRow, endRow, startColumn, endColumn,
+                bold, italic, backgroundColor, textColor, horizontalAlignment } = args;
+
+        const cellFormat = {};
+        const fields = [];
+
+        if (bold !== undefined || italic !== undefined) {
+          cellFormat.textFormat = {};
+          if (bold !== undefined) { cellFormat.textFormat.bold = bold; fields.push('userEnteredFormat.textFormat.bold'); }
+          if (italic !== undefined) { cellFormat.textFormat.italic = italic; fields.push('userEnteredFormat.textFormat.italic'); }
+        }
+        if (backgroundColor) {
+          cellFormat.backgroundColor = backgroundColor;
+          fields.push('userEnteredFormat.backgroundColor');
+        }
+        if (textColor) {
+          cellFormat.textFormat = cellFormat.textFormat || {};
+          cellFormat.textFormat.foregroundColor = textColor;
+          fields.push('userEnteredFormat.textFormat.foregroundColor');
+        }
+        if (horizontalAlignment) {
+          cellFormat.horizontalAlignment = horizontalAlignment;
+          fields.push('userEnteredFormat.horizontalAlignment');
+        }
+
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [{
+              repeatCell: {
+                range: { sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startColumn, endColumnIndex: endColumn },
+                cell: { userEnteredFormat: cellFormat },
+                fields: fields.join(',')
+              }
+            }]
+          }
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ success: true, message: 'Formatting applied' }, null, 2)
+          }]
+        };
+      }
+
+      case 'sheets_freeze': {
+        const { spreadsheetId, sheetId, frozenRowCount, frozenColumnCount } = args;
+        const gridProperties = {};
+        if (frozenRowCount !== undefined) gridProperties.frozenRowCount = frozenRowCount;
+        if (frozenColumnCount !== undefined) gridProperties.frozenColumnCount = frozenColumnCount;
+
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [{
+              updateSheetProperties: {
+                properties: { sheetId, gridProperties },
+                fields: Object.keys(gridProperties).map(k => `gridProperties.${k}`).join(',')
+              }
+            }]
+          }
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ success: true, message: 'Freeze settings updated' }, null, 2)
+          }]
+        };
+      }
+
+      case 'sheets_resize_columns': {
+        const { spreadsheetId, sheetId, startIndex, endIndex } = args;
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [{
+              autoResizeDimensions: {
+                dimensions: {
+                  sheetId,
+                  dimension: 'COLUMNS',
+                  startIndex,
+                  endIndex
+                }
+              }
+            }]
+          }
+        });
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ success: true, message: `Resized columns ${startIndex} to ${endIndex}` }, null, 2)
+          }]
+        };
+      }
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
+    if (error.message?.includes('invalid_grant') || error.message?.includes('Token') || error.code === 401) {
+      cachedOAuth = null;
+    }
     return {
       content: [{ type: 'text', text: JSON.stringify({ success: false, error: error.message }, null, 2) }],
       isError: true

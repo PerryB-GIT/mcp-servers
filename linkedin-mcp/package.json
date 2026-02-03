@@ -1,0 +1,16 @@
+{
+  "name": "linkedin-mcp",
+  "version": "1.0.0",
+  "description": "LinkedIn API MCP server for posts and company updates",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "auth": "node auth.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "express": "^4.18.2",
+    "open": "^9.1.0"
+  }
+}

@@ -6,7 +6,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { google } from 'googleapis';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -16,8 +16,11 @@ const __dirname = dirname(__filename);
 const CREDENTIALS_PATH = join(__dirname, 'credentials.json');
 const TOKEN_PATH = join(__dirname, 'token.json');
 
-// Initialize Google Calendar client
-function getCalendarClient() {
+let cachedClient = null;
+let cachedOAuth = null;
+
+// Initialize Google Calendar client with token refresh
+async function getCalendarClient() {
   if (!existsSync(TOKEN_PATH)) {
     throw new Error('Not authenticated. Run "npm run auth" first to authenticate with Google.');
   }
@@ -26,10 +29,35 @@ function getCalendarClient() {
   const token = JSON.parse(readFileSync(TOKEN_PATH, 'utf8'));
   const { client_id, client_secret } = credentials.installed;
 
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
+  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3334/oauth2callback');
   oAuth2Client.setCredentials(token);
 
-  return google.calendar({ version: 'v3', auth: oAuth2Client });
+  // Force refresh token on every call to avoid stale token issues
+  try {
+    const { credentials: newCreds } = await oAuth2Client.refreshAccessToken();
+    oAuth2Client.setCredentials(newCreds);
+    const tokenToSave = {
+      ...newCreds,
+      refresh_token: newCreds.refresh_token || token.refresh_token
+    };
+    writeFileSync(TOKEN_PATH, JSON.stringify(tokenToSave, null, 2));
+  } catch (err) {
+    cachedClient = null;
+    cachedOAuth = null;
+    throw new Error('Token refresh failed. Run "npm run auth" to re-authenticate.');
+  }
+
+  oAuth2Client.on('tokens', (tokens) => {
+    if (tokens.refresh_token || tokens.access_token) {
+      const currentToken = JSON.parse(readFileSync(TOKEN_PATH, 'utf8'));
+      const updatedToken = { ...currentToken, ...tokens };
+      writeFileSync(TOKEN_PATH, JSON.stringify(updatedToken, null, 2));
+    }
+  });
+
+  cachedOAuth = oAuth2Client;
+  cachedClient = google.calendar({ version: 'v3', auth: oAuth2Client });
+  return cachedClient;
 }
 
 // Parse date/time strings flexibly
@@ -241,7 +269,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    const calendar = getCalendarClient();
+    const calendar = await getCalendarClient();
 
     switch (name) {
       case 'calendar_create_event': {
@@ -422,6 +450,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
+    if (error.message?.includes('invalid_grant') || error.message?.includes('Token') || error.code === 401) {
+      cachedClient = null;
+      cachedOAuth = null;
+    }
     return {
       content: [
         {

@@ -4,7 +4,7 @@ Custom Model Context Protocol (MCP) servers for Claude Code.
 
 ## Overview
 
-These MCP servers extend Claude Code's capabilities with integrations for Google services, AWS, Stripe, and more.
+These MCP servers extend Claude Code's capabilities with integrations for Google services, AWS, social platforms, design tools, and more.
 
 ## Available Servers
 
@@ -12,33 +12,48 @@ These MCP servers extend Claude Code's capabilities with integrations for Google
 
 | Server | Description | Tools |
 |--------|-------------|-------|
-| `gmail` | Gmail integration | send_email, search_emails, read_email, draft_email, list_labels |
-| `google-calendar` | Calendar management | create_event, list_events, update_event, delete_event |
-| `google-drive` | Drive file operations | list_files, read_file, create_folder, share_file, search |
-| `google-sheets` | Spreadsheet operations | read_range, write_range, append_rows, create_spreadsheet |
+| `gmail` | Gmail integration | send_email, search_emails, read_email, draft_email, list_labels, modify_labels |
+| `google-calendar` | Calendar management | create_event, list_events, update_event, delete_event, list_calendars |
+| `google-drive` | Drive file operations | list_files, read_file, create_folder, share_file, search, move_file |
+| `google-sheets` | Spreadsheet operations | read_range, write_range, append_rows, create_spreadsheet, add_sheet |
 | `google-meet` | Meeting management | create_instant, schedule, list_upcoming |
-| `google-tasks` | Task management | list_tasks, create_task, complete_task, update_task |
+| `google-tasks` | Task management | list_tasks, create_task, complete_task, update_task, list_tasklists |
 | `google-business-profile` | Business profile management | Profile updates and management |
 
-### AWS & Cloud
+### Social & Communication
 
 | Server | Description | Tools |
 |--------|-------------|-------|
-| `cost-analyzer` | Multi-cloud cost monitoring | costs_get_summary, costs_check_alerts, costs_set_threshold |
+| `linkedin-mcp` | LinkedIn posting | create_post, create_company_post, get_profile, get_company |
+| `whatsapp` | WhatsApp messaging | send, get_chats, get_messages, search_contacts, search_messages |
+
+### Design & Media
+
+| Server | Description | Tools |
+|--------|-------------|-------|
+| `canva-mcp` | Canva design API | list_designs, create_design, export_design, upload_asset |
+| `figma-mcp` | Figma design files | get_file, get_images, post_comment, get_components, get_styles |
+| `heygen-mcp` | AI video generation | list_avatars, list_voices, create_video, translate_video |
+
+### Developer Tools
+
+| Server | Description | Tools |
+|--------|-------------|-------|
+| `github-mcp` | GitHub CLI wrapper | repo_list, issue_create, pr_create, pr_merge, workflow_run, search |
+| `bigquery-mcp` | GCP BigQuery | query, insert_rows, create_table, export_table, list_datasets |
+
+### Monitoring & Operations
+
+| Server | Description | Tools |
+|--------|-------------|-------|
+| `cost-analyzer` | Multi-cloud cost monitoring | costs_get_summary, costs_check_alerts, costs_set_threshold, costs_throttle_check |
+| `uptime-monitor` | Site uptime monitoring | Continuous monitoring with alerts, DR plan integration |
 
 ### Financial
 
 | Server | Description | Tools |
 |--------|-------------|-------|
-| `stripe` | Stripe payments integration | list_customers, create_invoice, send_invoice, list_payments |
-
-### Gaming / D&D
-
-| Server | Description | Tools |
-|--------|-------------|-------|
-| `dnd-5e-open5e` | D&D 5e rules from Open5e API | Spells, monsters, items, classes lookup |
-| `dnd-dm-toolkit` | DM campaign tools | Dice rolling, initiative, campaign state |
-| `dnd-knowledge-navigator` | D&D knowledge base | Search and verification tools |
+| `stripe` | Stripe payments integration | list_customers, create_invoice, send_invoice, list_payments, create_payment_link |
 
 ## Setup
 
@@ -55,6 +70,38 @@ These MCP servers extend Claude Code's capabilities with integrations for Google
    npm run auth
    ```
 6. Follow the OAuth flow in your browser
+
+### LinkedIn MCP Setup
+
+1. Create a LinkedIn Developer App at https://developer.linkedin.com/
+2. Set environment variables:
+   ```bash
+   export LINKEDIN_CLIENT_ID="your-client-id"
+   export LINKEDIN_CLIENT_SECRET="your-client-secret"
+   ```
+3. Run `npm run auth` to complete OAuth flow
+
+### Canva MCP Setup
+
+1. Create a Canva Developer App at https://www.canva.com/developers/
+2. Set environment variables and run auth
+
+### Figma & HeyGen Setup
+
+These use API keys instead of OAuth:
+```bash
+export FIGMA_ACCESS_TOKEN="your-token"
+export HEYGEN_API_KEY="your-key"
+```
+
+### WhatsApp Setup
+
+Uses whatsapp-web.js for browser-based authentication:
+```bash
+cd whatsapp
+npm install
+npm run auth  # Scan QR code with WhatsApp mobile app
+```
 
 ### Cost Analyzer Setup
 
@@ -87,11 +134,15 @@ Add to your `~/.claude.json` MCP settings:
   "mcpServers": {
     "gmail": {
       "command": "node",
-      "args": ["C:/Users/YourName/mcp-servers/gmail/index.js"]
+      "args": ["~/mcp-servers/gmail/index.js"]
     },
     "google-calendar": {
       "command": "node",
-      "args": ["C:/Users/YourName/mcp-servers/google-calendar/index.js"]
+      "args": ["~/mcp-servers/google-calendar/index.js"]
+    },
+    "linkedin": {
+      "command": "node",
+      "args": ["~/mcp-servers/linkedin-mcp/index.js"]
     }
   }
 }
@@ -111,6 +162,7 @@ npm run auth
 - OAuth tokens expire and need periodic refresh
 - Never share credentials.json or token.json files
 - Use test/sandbox modes for payment integrations
+- WhatsApp session data is stored locally and gitignored
 
 ## License
 

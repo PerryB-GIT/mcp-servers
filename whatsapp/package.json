@@ -1,0 +1,27 @@
+{
+  "name": "whatsapp-mcp",
+  "version": "1.0.0",
+  "description": "WhatsApp MCP server for Claude Code",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "auth": "node auth.js",
+    "auth:receptionist": "node auth-receptionist.js",
+    "receptionist": "node receptionist.js",
+    "live": "node claude-receptionist.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "whatsapp",
+    "mcp",
+    "claude"
+  ],
+  "author": "Perry Bailes",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.72.1",
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.6"
+  }
+}

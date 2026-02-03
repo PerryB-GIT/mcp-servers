@@ -83,3 +83,19 @@ build/
 dnd-5e-open5e/
 dnd-dm-toolkit/
 dnd-knowledge-navigator/
+
+# Personal/custom servers (not for public sharing)
+gv-receptionist/
+whatsapp-bot/
+grant-research/
+
+# WhatsApp session data
+.wwebjs_auth/
+.wwebjs_cache/
+.wwebjs_*/
+whatsapp/.wwebjs*/
+
+# Runtime state files
+*.pid
+state.json
+console.log.err

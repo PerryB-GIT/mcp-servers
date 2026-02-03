@@ -6,7 +6,7 @@ import open from 'open';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/drive.file'
+  'https://www.googleapis.com/auth/drive'
 ];
 const CREDENTIALS_PATH = new URL('./credentials.json', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const TOKEN_PATH = new URL('./token.json', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');

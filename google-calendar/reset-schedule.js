@@ -48,13 +48,13 @@ const events = [
   },
   {
     summary: '📞 Call Davidian Dental Beverly',
-    description: 'Schedule exam ASAP. Phone: (978) 927-5700',
+    description: 'Schedule exam ASAP. Phone: {DOCTOR_PHONE}',
     start: '2026-01-20T10:25:00',
     end: '2026-01-20T10:35:00',
   },
   {
     summary: '📞 Call Dr. Bahng - Schedule Follow-up',
-    description: 'Dr. Edward Bahng, MD - Beverly. Phone: (978) 232-7090',
+    description: 'Dr. Edward Bahng, MD - Beverly. Phone: {DOCTOR_PHONE_2}',
     start: '2026-01-20T10:35:00',
     end: '2026-01-20T10:45:00',
   },

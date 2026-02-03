@@ -3,7 +3,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { google } from 'googleapis';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -12,16 +12,44 @@ const __dirname = dirname(__filename);
 const CREDENTIALS_PATH = join(__dirname, 'credentials.json');
 const TOKEN_PATH = join(__dirname, 'token.json');
 
-function getTasksClient() {
+let cachedClient = null;
+let cachedOAuth = null;
+
+async function getTasksClient() {
   if (!existsSync(TOKEN_PATH)) {
     throw new Error('Not authenticated. Run "npm run auth" first.');
   }
   const credentials = JSON.parse(readFileSync(CREDENTIALS_PATH, 'utf8'));
   const token = JSON.parse(readFileSync(TOKEN_PATH, 'utf8'));
   const { client_id, client_secret } = credentials.installed;
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
+  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3334/oauth2callback');
   oAuth2Client.setCredentials(token);
-  return google.tasks({ version: 'v1', auth: oAuth2Client });
+
+  try {
+    const { credentials: newCreds } = await oAuth2Client.refreshAccessToken();
+    oAuth2Client.setCredentials(newCreds);
+    const tokenToSave = {
+      ...newCreds,
+      refresh_token: newCreds.refresh_token || token.refresh_token
+    };
+    writeFileSync(TOKEN_PATH, JSON.stringify(tokenToSave, null, 2));
+  } catch (err) {
+    cachedClient = null;
+    cachedOAuth = null;
+    throw new Error('Token refresh failed. Run "npm run auth" to re-authenticate.');
+  }
+
+  oAuth2Client.on('tokens', (tokens) => {
+    if (tokens.refresh_token || tokens.access_token) {
+      const currentToken = JSON.parse(readFileSync(TOKEN_PATH, 'utf8'));
+      const updatedToken = { ...currentToken, ...tokens };
+      writeFileSync(TOKEN_PATH, JSON.stringify(updatedToken, null, 2));
+    }
+  });
+
+  cachedOAuth = oAuth2Client;
+  cachedClient = google.tasks({ version: 'v1', auth: oAuth2Client });
+  return cachedClient;
 }
 
 const server = new Server(
@@ -137,7 +165,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
-    const tasks = getTasksClient();
+    const tasks = await getTasksClient();
 
     switch (name) {
       case 'tasks_list_tasklists': {
@@ -292,6 +320,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
+    if (error.message?.includes('invalid_grant') || error.message?.includes('Token') || error.code === 401) {
+      cachedClient = null;
+      cachedOAuth = null;
+    }
     return {
       content: [{ type: 'text', text: JSON.stringify({ success: false, error: error.message }, null, 2) }],
       isError: true
